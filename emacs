@@ -1,5 +1,5 @@
 ;; Last modified
-;; Thu Jan 06 21:32:06 CET 2011
+;; Mon Feb 14 11:15:06 CET 2011
 
 ;; Thanks to:
 ;; JanBorsodi.emacs (http://www.dotemacs.de/dotfiles/JanBorsodi/JanBorsodi.emacs.html)
@@ -14,8 +14,8 @@
 ;; No startup message
 (setq inhibit-startup-screen t)
 
-;; Disabling backup
-(setq backup-inhibited t)
+;; No more backup
+(setq make-backup-files nil)
 
 ;; rightheader macro
 ;; open src/myclass.cpp
@@ -23,13 +23,11 @@
 (fset 'rightheader "\C-[xbuffer-menu\C-m\C-[OF\C-@\C-[[1;5D\C-[[1;5D\C-[w\C-xk\C-m\C-x3\C-xo\C-x\C-f\C-?\C-?\C-?\C-?headers/\C-y\C-?\C-?\C-?h\C-m\C-xo")
 
 ;; ajout au PATH-Emacs
-(add-to-list 'load-path "~/.emacs.d/")
+(add-to-list 'load-path "~/.emacs.d")
+;;(add-to-list 'load-path "~/.emacs.d/kde")
 
-;; Autocomplete mode
-(require 'auto-complete-config)
-(require 'auto-complete-etags)
-(add-to-list 'ac-dictionary-directories "~/.emacs.d//ac-dict")
-(ac-config-default)
+;; headers trigger C++ mode
+(add-to-list 'auto-mode-alist '("\\.h" . c++-mode))
 
 ;; Show whitespaces
 (setq show-trailing-whitespace t)
@@ -103,6 +101,42 @@
  (functionp 'normal-erase-is-backspace-mode)
  (normal-erase-is-backspace-mode nil))
 
+;; ---------------
+;;  LANGUAGE MODS
+;; ---------------
+
+;; CMake
+(require 'cmake-mode)
+(setq auto-mode-alist (append '(("CMakeLists\\.txt\\'" . cmake-mode)
+                                ("\\.cmake\\'" . cmake-mode))
+                              auto-mode-alist))
+
+;; Autocomplete
+;; http://cx4a.org/software/auto-complete/
+(require 'auto-complete-config)
+(add-to-list 'ac-dictionary-directories "/home/rdally/.emacs.d/ac-dict")
+(ac-config-default)
+
+;; Hideshow (blocks hidding)
+;; http://www.emacswiki.org/emacs/HideShow/
+(load-library "hideshow")
+(dolist (hook (list
+               'c-mode-hook
+               'java-mode-hook
+               'perl-mode-hook
+               'php-mode-hook
+               'emacs-lisp-mode-hook
+               'lisp-mode-hook
+               ))
+  (add-hook hook 'hs-minor-mode))
+
+(provide 'init-hideshow)
+
+;; DosBat
+;; http://sourceforge.net/projects/dosbat/
+(autoload 'bat-mode "dosbat" "DosBat Mode." t)
+(add-to-list 'auto-mode-alist '("\\.bat\\'" . bat-mode))
+
 ;; Python
 ;; http://launchpadlibrarian.net/21781107/python-mode.el
 (autoload 'python-mode "python-mode" "Python Mode." t)
@@ -114,6 +148,10 @@
 (autoload 'php-mode "php-mode" "Major mode for editing php code." t)
 (add-to-list 'auto-mode-alist '("\\.php$" . php-mode))
 (add-to-list 'auto-mode-alist '("\\.inc$" . php-mode))
+
+;; Qt projects
+(require 'qt-pro)
+(add-to-list 'auto-mode-alist '("\\.pr[io]$" . qt-pro-mode))
 
 ;; Shortcuts
 (global-set-key "\C-c\C-r"      'iwb)
@@ -129,21 +167,13 @@
 (global-set-key "\C-x\C-g" 'toggle-input-method)
 (add-hook 'message-mode-hook 'toggle-input-method)
 
-;; ------
-;; MACROS
-;; ------
-
-(defun iwb ()
-  "indent whole buffer"
-  (interactive)
-  (delete-trailing-whitespace)
-  (indent-region (point-min) (point-max) nil)
-  (untabify (point-min) (point-max))
-  )
+;; --------
+;;  MACROS
+;; --------
 
 ;; Usage
 ;; $ emacs
-;; M-x my-class-generator MyClass
+;; M-x my-class-generator
 (defun my-class-generator (classname)
   (setq src_dir "src")
   (setq headers_dir "headers")
@@ -173,6 +203,23 @@
         (message "Generating class... done"))
     (message (concat src_dir " and " headers_dir " directories must exist."))
     )
+  )
+
+(defun ltverbose ()
+  "Insert #ifdef LT_VERBOSE #include QDebug #endif"
+  (interactive)
+  (setq macro_title "LT_VERBOSE")
+  (insert (concat "\n#if defined(" macro_title ")\n"))
+  (insert "#include <QDebug>\n")
+  (insert "#endif\n")
+  )
+
+(defun iwb ()
+  "indent whole buffer"
+  (interactive)
+  (delete-trailing-whitespace)
+  (indent-region (point-min) (point-max) nil)
+  (untabify (point-min) (point-max))
   )
 
 (defun now ()
@@ -310,8 +357,6 @@ print a message in the minibuffer with the result."
                       (insert-string (concat "#include " include-file "\n"))))))
           (setq includes (cdr includes))))))
 
-
-
 ;; Cursor stands still on scroll
 ;; (setq scroll-preserve-screen-position t)
 ;; (setq cursor-in-non-selected-windows t)
@@ -351,71 +396,49 @@ print a message in the minibuffer with the result."
  '(show-paren-match ((((class color)) (:background "DarkSlateBlue"))))
  '(tooltip ((((class color)) (:background "lightyellow" :foreground "black")))))
 
-;;;; syntax-highlighting for Qt
-;;;; (based on work by Arndt Gulbrandsen, Troll Tech)
-;; (defun jk/c-mode-common-hook ()
-;;   "Set up c-mode and related modes.
-;;    Includes support for Qt code (signal, slots and alikes)."
-
-;; (c-set-style "stroustrup")
-;; (c-toggle-auto-hungry-state 1)
-
-;; (setq c-protection-key (concat "\\<\\(public\\|public slot\\|protected"
-;;                                "\\|protected slot\\|private\\|private slot"
-;;                                "\\)\\>")
-;;       c-C++-access-key (concat "\\<\\(signals\\|public\\|protected\\|private"
-;;                                "\\|public slots\\|protected slots\\|private slots"
-;;                                "\\)\\>[ \t]*:"))
-;; (progn
-;;   (font-lock-add-keywords 'c++-mode
-;;                           '(("\\<\\(slots\\|signals\\)\\>" . font-lock-type-face)))
-;;   (make-face 'qt-keywords-face)
-;;   (set-face-foreground 'qt-keywords-face "BlueViolet")
-;;   (font-lock-add-keywords 'c++-mode
-;;                           '(("\\<Q_OBJECT\\>" . 'qt-keywords-face)))
-;;   (font-lock-add-keywords 'c++-mode
-;;                           '(("\\<SIGNAL\\|SLOT\\>" . 'qt-keywords-face)))
-;;   (font-lock-add-keywords 'c++-mode
-;;                           '(("\\<Q[A-Z][A-Za-z]*" . 'qt-keywords-face)))
-;;   ))
-;; (add-hook 'c-mode-common-hook 'jk/c-mode-common-hook)
-
-;; Qt keywords
-;; (c-add-style "qt-gnu" '("gnu"(c-access-key . "\\<\\(signals\\|public\\|protected\\|private\\|public slots\\|protected slots\\|private slots\\):")
-;;                      (c-basic-offset . 4)))
-
-(add-to-list 'auto-mode-alist '("\.h$" . c++-mode))
-(setq c-C++-access-key "\\<\\(slots\\|signals\\|private\\|protected\\|public\\)\\>[ \t]*[(slots\\|signals)]*[ \t]*:")
-(font-lock-add-keywords 'c++-mode '(("\\<\\(Q_OBJECT\\|public slots\\|public signals\\|private slots\\|private signals\\|protected slots\\|protected signals\\)\\>" . font-lock-constant-face)))
-
 ;; Do not check for old-style (K&R) function declarations;
 ;; this speeds up indenting a lot.
 (setq c-recognize-knr-p nil)
 
-;; Switch fromm *.<impl> to *.<head> and vice versa
-(defun switch-cc-to-h ()
-  (interactive)
-  (when (string-match "^\\(.*\\)\\.\\([^.]*\\)$" buffer-file-name)
-    (let ((name (match-string 1 buffer-file-name))
-          (suffix (match-string 2 buffer-file-name)))
-      (cond ((string-match suffix "c\\|cc\\|C\\|cpp")
-             (cond ((file-exists-p (concat name ".h"))
-                    (find-file (concat name ".h"))
-                    )
-                   ((file-exists-p (concat name ".hh"))
-                    (find-file (concat name ".hh"))
-                    )
-                   ))
-            ((string-match suffix "h\\|hh")
-             (cond ((file-exists-p (concat name ".cc"))
-                    (find-file (concat name ".cc"))
-                    )
-                   ((file-exists-p (concat name ".C"))
-                    (find-file (concat name ".C"))
-                    )
-                   ((file-exists-p (concat name ".cpp"))
-                    (find-file (concat name ".cpp"))
-                    )
-                   ((file-exists-p (concat name ".c"))
-                    (find-file (concat name ".c"))
-                    )))))))
+;; ;; C++/Qt keywords
+;; ;; syntax-highlighting for Qt
+;; ;; (based on work by Arndt Gulbrandsen, Troll Tech)
+;; (defun jk/c-mode-common-hook ()
+;;   "Set up c-mode and related modes.
+;;    Includes support for Qt code (signal, slots and alikes)."
+
+;; ;;  base-style
+;;   (c-set-style "stroustrup")
+;; ;;  set auto cr mode
+;;   (c-toggle-auto-hungry-state 1)
+
+;; ;; qt keywords and stuff ...
+;; ;; set up indenting correctly for new qt kewords
+;;   (setq c-protection-key (concat "\\<\\(public\\|public slot\\|protected"
+;;                                  "\\|protected slot\\|private\\|private slot"
+;;                                  "\\)\\>")
+;;         c-C++-access-key (concat "\\<\\(signals\\|public\\|protected\\|private"
+;;                                  "\\|public slots\\|protected slots\\|private slots"
+;;                                  "\\)\\>[ \t]*:"))
+;;   (progn
+;; ;; modify the colour of slots to match public, private, etc ...
+;;     (font-lock-add-keywords 'c++-mode
+;;                             '(("\\<\\(slots\\|signals\\)\\>" . font-lock-type-face)))
+;; ;; make new font for rest of qt keywords
+;;     (make-face 'qt-keywords-face)
+;;     (set-face-foreground 'qt-keywords-face "BlueViolet")
+;; ;; qt keywords
+;;     (font-lock-add-keywords 'c++-mode
+;;                             '(("\\<Q_OBJECT\\>" . 'qt-keywords-face)))
+;;     (font-lock-add-keywords 'c++-mode
+;;                             '(("\\<SIGNAL\\|SLOT\\>" . 'qt-keywords-face)))
+;;     (font-lock-add-keywords 'c++-mode
+;;                             '(("\\<Q[A-Z][A-Za-z]*" . 'qt-keywords-face)))
+;;     ))
+;; (add-hook 'c-mode-common-hook 'jk/c-mode-common-hook)
+
+(setq c-C++-access-key "\\<\\(slots\\|signals\\|private\\|protected\\|public\\)\\>[ \t]*[(slots\\|signals)]*[ \t]*:")
+(font-lock-add-keywords 'c-mode '(("\\<\\(Q_OBJECT\\|public slots\\|public signals\\|private slots\\|private signals\\|protected slots\\|protected signals\\)\\>" . font-lock-constant-face)))
+
+(font-lock-add-keywords 'c++-mode '(("\\<\\(Q_OBJECT\\)\\>" . font-lock-constant-face)))
+(font-lock-add-keywords 'c++-mode '(("\\<\\(public slots\\|public signals\\|private slots\\|private signals\\|protected slots\\|protected signals\\|signals\\)\\>" . font-lock-keyword-face)))
