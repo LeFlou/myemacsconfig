@@ -1,0 +1,1 @@
+Emacs configuration files featuring C++/Qt4 support and various useful macros.
