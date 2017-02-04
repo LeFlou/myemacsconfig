@@ -1,30 +1,8 @@
-;; Last modified
-;; Mon Feb 14 11:15:06 CET 2011
-
-;; Thanks to:
-;; JanBorsodi.emacs (http://www.dotemacs.de/dotfiles/JanBorsodi/JanBorsodi.emacs.html)
-;; KDE (http://websvn.kde.org/trunk/KDE/kdesdk/scripts/kde-emacs/)
-;; emacswiki.org (http://www.emacswiki.org/cgi-bin/wiki?QtMode)
-
-;; REMINDER
-;; M-x name-last-kbd-macro
-;; M-x insert-kbd-macro
-;; (global-set-key (kbd "C-c a") 'my-macro)
-
 ;; No startup message
 (setq inhibit-startup-screen t)
 
 ;; No more backup
 (setq make-backup-files nil)
-
-;; rightheader macro
-;; open src/myclass.cpp
-;; then M-x rightheader to open headers/myclass.h
-(fset 'rightheader "\C-[xbuffer-menu\C-m\C-[OF\C-@\C-[[1;5D\C-[[1;5D\C-[w\C-xk\C-m\C-x3\C-xo\C-x\C-f\C-?\C-?\C-?\C-?headers/\C-y\C-?\C-?\C-?h\C-m\C-xo")
-
-;; ajout au PATH-Emacs
-(add-to-list 'load-path "~/.emacs.d")
-;;(add-to-list 'load-path "~/.emacs.d/kde")
 
 ;; headers trigger C++ mode
 (add-to-list 'auto-mode-alist '("\\.h" . c++-mode))
@@ -38,18 +16,19 @@
 (global-font-lock-mode t)
 (setq font-lock-maximum-decoration 5)
 
-(set-face-foreground   'font-lock-string-face "Yellow")
-(set-face-foreground   'font-lock-comment-face  "OrangeRed")
-(set-face-foreground   'font-lock-keyword-face  "Cyan")
-(set-face-bold-p       'font-lock-keyword-face t)
-(set-face-foreground   'font-lock-type-face     "Wheat")
-;; (set-face-underline-p  'font-lock-type-face t)
-(set-face-foreground   'font-lock-function-name-face    "Blue")
-(set-face-bold-p       'font-lock-function-name-face t)
-(set-face-foreground   'font-lock-variable-name-face    "Green")
-;; reference
-;; (set-face-foreground   'font-lock-constant-face "White")
-;; (set-face-background   'font-lock-constant-face "BlueViolet")
+;; melpa.milkbox.net
+(require 'package)
+(add-to-list 'package-archives
+	     '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+(when (< emacs-major-version 24)
+  ;; For important compatibility libraries like cl-lib
+  (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
+(package-initialize)
+
+;; Jedi (python autcompletion)
+(add-hook 'python-mode-hook 'jedi:setup)
+(setq jedi:complete-on-dot t)
+
 (set-foreground-color "white")
 (set-background-color "black")
 
@@ -76,7 +55,6 @@
 ;; Show time in modeline
 (display-time)
 
-
 ;; Show Matching Parentheses
 (show-paren-mode t)
 
@@ -85,6 +63,10 @@
 
 ;; Default indentation
 (setq c-indentation-style "sh-mode")
+
+;; Do not check for old-style (K&R) function declarations;
+;; this speeds up indenting a lot.
+(setq c-recognize-knr-p nil)
 
 ;; No menu bar
 (menu-bar-mode nil)
@@ -101,68 +83,58 @@
  (functionp 'normal-erase-is-backspace-mode)
  (normal-erase-is-backspace-mode nil))
 
+;; Grow/Shrink Windows
+;; https://www.emacswiki.org/emacs/GrowShrinkWindows
+(defun xor (b1 b2)
+  "Exclusive or of its two arguments."
+  (or (and b1 b2)
+      (and (not b1) (not b2))))
+
+(defun move-border-left-or-right (arg dir)
+         "General function covering move-border-left and move-border-right. If DIR is
+     t, then move left, otherwise move right."
+	 (interactive)
+	 (if (null arg) (setq arg 5))
+	 (let ((left-edge (nth 0 (window-edges))))
+	   (if (xor (= left-edge 0) dir)
+	       (shrink-window arg t)
+	     (enlarge-window arg t))))
+
+(defun move-border-left (arg)
+         "If this is a window with its right edge being the edge of the screen, enlarge
+     the window horizontally. If this is a window with its left edge being the edge
+     of the screen, shrink the window horizontally. Otherwise, default to enlarging
+     horizontally.
+
+     Enlarge/Shrink by ARG columns, or 5 if arg is nil."
+	 (interactive "P")
+	 (move-border-left-or-right arg t))
+
+(defun move-border-right (arg)
+         "If this is a window with its right edge being the edge of the screen, shrink
+     the window horizontally. If this is a window with its left edge being the edge
+     of the screen, enlarge the window horizontally. Otherwise, default to shrinking
+     horizontally.
+
+     Enlarge/Shrink by ARG columns, or 5 if arg is nil."
+	 (interactive "P")
+	 (move-border-left-or-right arg nil))
+
 ;; ---------------
 ;;  LANGUAGE MODS
 ;; ---------------
 
-;; CMake
-(require 'cmake-mode)
-(setq auto-mode-alist (append '(("CMakeLists\\.txt\\'" . cmake-mode)
-                                ("\\.cmake\\'" . cmake-mode))
-                              auto-mode-alist))
-
-;; Autocomplete
-;; http://cx4a.org/software/auto-complete/
-(require 'auto-complete-config)
-(add-to-list 'ac-dictionary-directories "/home/rdally/.emacs.d/ac-dict")
-(ac-config-default)
-
-;; Hideshow (blocks hidding)
-;; http://www.emacswiki.org/emacs/HideShow/
-(load-library "hideshow")
-(dolist (hook (list
-               'c-mode-hook
-               'java-mode-hook
-               'perl-mode-hook
-               'php-mode-hook
-               'emacs-lisp-mode-hook
-               'lisp-mode-hook
-               ))
-  (add-hook hook 'hs-minor-mode))
-
-(provide 'init-hideshow)
-
-;; DosBat
-;; http://sourceforge.net/projects/dosbat/
-(autoload 'bat-mode "dosbat" "DosBat Mode." t)
-(add-to-list 'auto-mode-alist '("\\.bat\\'" . bat-mode))
-
-;; Python
-;; http://launchpadlibrarian.net/21781107/python-mode.el
-(autoload 'python-mode "python-mode" "Python Mode." t)
-(add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
-(add-to-list 'interpreter-mode-alist '("python" . python-mode))
-
-;; php
-;; http://www.emacswiki.org/emacs/PhpMode
-(autoload 'php-mode "php-mode" "Major mode for editing php code." t)
-(add-to-list 'auto-mode-alist '("\\.php$" . php-mode))
-(add-to-list 'auto-mode-alist '("\\.inc$" . php-mode))
-
-;; Qt projects
-(require 'qt-pro)
-(add-to-list 'auto-mode-alist '("\\.pr[io]$" . qt-pro-mode))
-
 ;; Shortcuts
-(global-set-key "\C-c\C-r"      'iwb)
-(global-set-key "\C-c\C-g"      'goto-line)
-(global-set-key "\C-c\C-c"      'comment-or-uncomment-region)
-(global-set-key "\C-p"          'rightheader)
-(global-set-key [home]          'beginning-of-line)
-(global-set-key [end]           'end-of-line)
-(global-set-key [f12]           'iwb)
+(global-set-key "\C-c\C-g"  'goto-line)
+(global-set-key "\C-c\C-c"  'comment-or-uncomment-region)
+(global-set-key [home]      'beginning-of-line)
+(global-set-key [end]       'end-of-line)
+(global-set-key [f12]       'jedi:goto-definition)
+(global-set-key [M-left]    'pop-global-mark)
+(global-set-key [C-left]    'move-border-left)
+(global-set-key [C-right]   'move-border-right)
 
-;; Jeux de claviers
+;; French keyboard
 (setq default-input-method 'french-postfix)
 (global-set-key "\C-x\C-g" 'toggle-input-method)
 (add-hook 'message-mode-hook 'toggle-input-method)
@@ -170,58 +142,6 @@
 ;; --------
 ;;  MACROS
 ;; --------
-
-;; Usage
-;; $ emacs
-;; M-x my-class-generator
-(defun my-class-generator (classname)
-  (setq src_dir "src")
-  (setq headers_dir "headers")
-  (interactive "sEnter classname: ")
-  (if (and
-       (file-accessible-directory-p src_dir)
-       (file-accessible-directory-p headers_dir))
-      (progn
-        (message "Generating class...")
-        (find-file (concat src_dir "/" (downcase classname) ".cpp"))
-        (insert (concat "#include \"" (downcase classname) ".h\"\n\n"))
-        (insert (concat classname "::" classname "(void)\n{\n}\n\n"))
-        (insert (concat classname "::~" classname "(void)\n{\n}\n"))
-        (save-buffer)
-        (split-window-horizontally)
-        (other-window -1)
-        (find-file (concat "../" headers_dir "/" (downcase classname) ".h"))
-        (insert (concat "#ifndef " (upcase classname) "_H_\n"))
-        (insert (concat "#define " (upcase classname) "_H_\n\n"))
-        (insert (concat "class " classname "\n{\npublic:\n"))
-        (insert (concat classname "(void);\n"))
-        (insert (concat "~" classname "(void);\n"))
-        (insert "};\n\n#endif")
-        (indent-region (point-min) (point-max) nil)
-        (save-buffer)
-        (other-window -1)
-        (message "Generating class... done"))
-    (message (concat src_dir " and " headers_dir " directories must exist."))
-    )
-  )
-
-(defun ltverbose ()
-  "Insert #ifdef LT_VERBOSE #include QDebug #endif"
-  (interactive)
-  (setq macro_title "LT_VERBOSE")
-  (insert (concat "\n#if defined(" macro_title ")\n"))
-  (insert "#include <QDebug>\n")
-  (insert "#endif\n")
-  )
-
-(defun iwb ()
-  "indent whole buffer"
-  (interactive)
-  (delete-trailing-whitespace)
-  (indent-region (point-min) (point-max) nil)
-  (untabify (point-min) (point-max))
-  )
-
 (defun now ()
   "Insert string for the current time formatted like '2:34 PM'."
   (interactive)
@@ -235,210 +155,3 @@
   "Insert string for today's date nicely formatted in American style, e.g. Sunday, September 17, 2000."
   (interactive)
   (insert (format-time-string "%A, %B %e, %Y")))
-
-;; Count words in buffer
-(defun count-words-buffer ()
-  "Count the number of words in current the buffer
-print a message in the minibuffer with the result."
-  (interactive)
-  (save-excursion
-    (let ((count 0))
-      (goto-char (point-min))
-      (while (< (point) (point-max))
-        (forward-word 1)
-        (setq count (1+ count)))
-      (message "buffer contains %d words." count))))
-
-;; Will align c/c++ variable declarations in the selected region
-;; Example:
-;; int a;
-;; const QString b;
-;; static unsigned int c;
-;;
-;; will become:
-;; int                 a;
-;; const QString       b;
-;; static unsigned int c;
-(defun align-vars(beg end)
-  "Aligns c/c++ variable declaration names on the same column, with beginning and end taken from selected region."
-  (interactive "r")
-  (save-excursion
-    (let (bol eol expr-end
-              (max-col 0) col
-              poslist curpos)
-      (goto-char end)
-      (if (not (bolp))
-          (setq end (line-end-position)))
-      (goto-char beg)
-      (while (and (> end (point)) (not (eobp)))
-        (setq bol (line-beginning-position))
-        (setq eol (line-end-position))
-        (beginning-of-line)
-        (setq expr-end (point))
-        (if (search-forward-regexp "^[^/][^/]\\([a-zA-Z][a-zA-Z]*\\)[ \t]+[^;]" eol t)
-            (let ()
-              (setq expr-end (match-end 1))
-              (while (search-forward-regexp "\\([a-zA-Z][a-zA-Z]*\\)[ \t]+[^;]" eol t)
-                (setq expr-end (match-end 1)))
-              (goto-char expr-end)
-              (setq col (current-column))
-              (if (search-forward-regexp (concat "\\(\\*\\|&[ \t]*\\)?"
-                                                 "\\([a-zA-Z\\_][a-zA-Z0-9\\_]*\\)\\([\[][0-9]+[\]]\\)?"
-                                                 "\\([ \t]*,[ \t]*\\([a-zA-Z\\_][a-zA-Z0-9\\_]*\\)\\([\[][0-9]+[\]]\\)?\\)*"
-                                                 "[ \t]*;$") eol t)
-                  (let ((name-col-end 0))
-                    (if (eq (match-beginning 2) (match-beginning 0))
-                        (setq name-col-end 1))
-                    (setq poslist (cons (list expr-end col (match-beginning 0) name-col-end) poslist))
-                    (if (> col max-col)
-                        (setq max-col col))
-                    (beginning-of-next-line))
-                (beginning-of-next-line)))
-          (beginning-of-next-line)))
-      (setq curpos poslist)
-      (while curpos
-        (let* ((pos (car curpos))
-               (col (car (cdr pos)))
-               (col-end (car (cdr (cdr pos))))
-               (col-end-name (car (cdr (cdr (cdr pos)))))
-               (abs-pos (car pos)))
-          (goto-char abs-pos)
-          (delete-region abs-pos col-end)
-          (insert-string (make-string (+ (+ (- max-col col) 1) col-end-name) 32)))
-        (setq curpos (cdr curpos))))))
-
-;; Aligns all variable declarations in this buffer
-(defun align-vars-buffer()
-  "Aligns c/c++ variable declaration names on the same column in this buffer."
-  (interactive)
-  (save-excursion
-    (let (beg end)
-      (beginning-of-buffer)
-      (setq beg (point))
-      (end-of-buffer)
-      (setq end (point))
-      (align-vars beg end))))
-
-;; Checks for known classes and adds includes on the top if none are present
-                                        ;(defun insert-include( buffer buf )
-(defun insert-include()
-  "Insert #include on the top of the file if certain class names are found in the file"
-  (interactive)
-  (if (string-equal mode-name "C++")
-      (let ((includes project-include-classes)
-            (include)
-            (include-classes)
-            (include-class)
-            (include-file)
-            (class-exists nil))
-        (while includes
-          (setq include (car includes))
-          (setq include-classes (car include))
-          (setq include-file (car (cdr include)))
-          (setq class-exists nil)
-          (while (and (not class-exists) include-classes)
-            (setq include-class (car include-classes))
-            (save-excursion
-              (beginning-of-buffer)
-              (if (search-forward-regexp (concat "\\<" include-class "\\>") nil t)
-                  (setq class-exists t)))
-            (setq include-classes (cdr include-classes)))
-          (if class-exists
-              (let ((already-present nil))
-                (save-excursion
-                  (beginning-of-buffer)
-                  (if (search-forward-regexp (concat "^#include[ \t]+"
-                                                     include-file
-                                                     "[ \t]*\n") nil t )
-                      (setq already-present t)))
-                (if (not already-present)
-                    (save-excursion
-                      (goto-char (end-of-include-place))
-                      (insert-string (concat "#include " include-file "\n"))))))
-          (setq includes (cdr includes))))))
-
-;; Cursor stands still on scroll
-;; (setq scroll-preserve-screen-position t)
-;; (setq cursor-in-non-selected-windows t)
-
-;; Copy on cursor position, not mouse one
-;; (setq mouse-yank-at-point t)
-
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(ansi-color-names-vector ["black" "red" "green" "yellow" "lightslateblue" "magenta" "cyan" "white"])
- '(canlock-password "e722586516e941d6dfddd0e88b7623046bec29aa")
- '(compilation-scroll-output t)
- '(compile-auto-highlight 5)
- '(executable-chmod 755)
- '(gnus-buttonized-mime-types (quote (".*/.*")))
- '(gnus-show-threads t)
- '(gnus-thread-hide-subtree t)
- '(grep-command "grep -i -n -e "))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(cursor ((t (:background "tan"))))
- '(gnus-header-content-face ((t (:foreground "green3"))) t)
- '(gnus-header-from-face ((((class color) (background dark)) (:foreground "SeaGreen3"))) t)
- '(gnus-header-name-face ((((class color) (background dark)) (:foreground "Green"))) t)
- '(gnus-header-subject-face ((((class color) (background dark)) (:foreground "spring green"))) t)
- '(info-xref ((t (:foreground "magenta" :weight bold))))
- '(message-header-name-face ((((class color) (background dark)) (:inherit gnus-header-name-face))) t)
- '(message-header-other-face ((((class color) (background dark)) (:inherit gnus-header-content-face))) t)
- '(mode-line ((((type x w32 mac) (class color)) (:background "slateblue" :foreground "black" :box (:line-width -1 :style released-button)))))
- '(mouse ((t (:background "white"))))
- '(show-paren-match ((((class color)) (:background "DarkSlateBlue"))))
- '(tooltip ((((class color)) (:background "lightyellow" :foreground "black")))))
-
-;; Do not check for old-style (K&R) function declarations;
-;; this speeds up indenting a lot.
-(setq c-recognize-knr-p nil)
-
-;; ;; C++/Qt keywords
-;; ;; syntax-highlighting for Qt
-;; ;; (based on work by Arndt Gulbrandsen, Troll Tech)
-;; (defun jk/c-mode-common-hook ()
-;;   "Set up c-mode and related modes.
-;;    Includes support for Qt code (signal, slots and alikes)."
-
-;; ;;  base-style
-;;   (c-set-style "stroustrup")
-;; ;;  set auto cr mode
-;;   (c-toggle-auto-hungry-state 1)
-
-;; ;; qt keywords and stuff ...
-;; ;; set up indenting correctly for new qt kewords
-;;   (setq c-protection-key (concat "\\<\\(public\\|public slot\\|protected"
-;;                                  "\\|protected slot\\|private\\|private slot"
-;;                                  "\\)\\>")
-;;         c-C++-access-key (concat "\\<\\(signals\\|public\\|protected\\|private"
-;;                                  "\\|public slots\\|protected slots\\|private slots"
-;;                                  "\\)\\>[ \t]*:"))
-;;   (progn
-;; ;; modify the colour of slots to match public, private, etc ...
-;;     (font-lock-add-keywords 'c++-mode
-;;                             '(("\\<\\(slots\\|signals\\)\\>" . font-lock-type-face)))
-;; ;; make new font for rest of qt keywords
-;;     (make-face 'qt-keywords-face)
-;;     (set-face-foreground 'qt-keywords-face "BlueViolet")
-;; ;; qt keywords
-;;     (font-lock-add-keywords 'c++-mode
-;;                             '(("\\<Q_OBJECT\\>" . 'qt-keywords-face)))
-;;     (font-lock-add-keywords 'c++-mode
-;;                             '(("\\<SIGNAL\\|SLOT\\>" . 'qt-keywords-face)))
-;;     (font-lock-add-keywords 'c++-mode
-;;                             '(("\\<Q[A-Z][A-Za-z]*" . 'qt-keywords-face)))
-;;     ))
-;; (add-hook 'c-mode-common-hook 'jk/c-mode-common-hook)
-
-(setq c-C++-access-key "\\<\\(slots\\|signals\\|private\\|protected\\|public\\)\\>[ \t]*[(slots\\|signals)]*[ \t]*:")
-(font-lock-add-keywords 'c-mode '(("\\<\\(Q_OBJECT\\|public slots\\|public signals\\|private slots\\|private signals\\|protected slots\\|protected signals\\)\\>" . font-lock-constant-face)))
-
-(font-lock-add-keywords 'c++-mode '(("\\<\\(Q_OBJECT\\)\\>" . font-lock-constant-face)))
-(font-lock-add-keywords 'c++-mode '(("\\<\\(public slots\\|public signals\\|private slots\\|private signals\\|protected slots\\|protected signals\\|signals\\)\\>" . font-lock-keyword-face)))
