@@ -83,43 +83,6 @@
  (functionp 'normal-erase-is-backspace-mode)
  (normal-erase-is-backspace-mode nil))
 
-;; Grow/Shrink Windows
-;; https://www.emacswiki.org/emacs/GrowShrinkWindows
-(defun xor (b1 b2)
-  "Exclusive or of its two arguments."
-  (or (and b1 b2)
-      (and (not b1) (not b2))))
-
-(defun move-border-left-or-right (arg dir)
-         "General function covering move-border-left and move-border-right. If DIR is
-     t, then move left, otherwise move right."
-	 (interactive)
-	 (if (null arg) (setq arg 5))
-	 (let ((left-edge (nth 0 (window-edges))))
-	   (if (xor (= left-edge 0) dir)
-	       (shrink-window arg t)
-	     (enlarge-window arg t))))
-
-(defun move-border-left (arg)
-         "If this is a window with its right edge being the edge of the screen, enlarge
-     the window horizontally. If this is a window with its left edge being the edge
-     of the screen, shrink the window horizontally. Otherwise, default to enlarging
-     horizontally.
-
-     Enlarge/Shrink by ARG columns, or 5 if arg is nil."
-	 (interactive "P")
-	 (move-border-left-or-right arg t))
-
-(defun move-border-right (arg)
-         "If this is a window with its right edge being the edge of the screen, shrink
-     the window horizontally. If this is a window with its left edge being the edge
-     of the screen, enlarge the window horizontally. Otherwise, default to shrinking
-     horizontally.
-
-     Enlarge/Shrink by ARG columns, or 5 if arg is nil."
-	 (interactive "P")
-	 (move-border-left-or-right arg nil))
-
 ;; ---------------
 ;;  LANGUAGE MODS
 ;; ---------------
@@ -131,8 +94,10 @@
 (global-set-key [end]       'end-of-line)
 (global-set-key [f12]       'jedi:goto-definition)
 (global-set-key [M-left]    'pop-global-mark)
-(global-set-key [C-left]    'move-border-left)
-(global-set-key [C-right]   'move-border-right)
+(global-set-key [C-up]      'shrink-window)
+(global-set-key [C-down]    'enlarge-window)
+(global-set-key [C-left]    'shrink-window-horizontally)
+(global-set-key [C-right]   'enlarge-window-horizontally)
 
 ;; French keyboard
 (setq default-input-method 'french-postfix)
